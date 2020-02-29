@@ -1,0 +1,7 @@
+# Setting up Visual Studio Code for Kernel Modules Developments
+## Short Story
+First thing,I'm a windows guy, and i have been coding with visual studio since 7 years, never used any other IDE. since it's hard to code in linux kernel with it i had to find another way (VisualKernel didnt work out well for me) and using linux as my main OS was not an option. I had to dump Visual Studio this time :/, and went with her sister Visual Studio Code (it felt like cheating on her)
+VSCode allows you to do remote devlopments through ssh, now i dont have to use linux code on it (smart move Microsoft, no one can beat it with its devlopments tools)
+## How To Set it Up
+The only thing you need to do for remote devlopments is to install "Remote - SSH" extention.
+check out configiration files to make intillisense work well with you modules.
