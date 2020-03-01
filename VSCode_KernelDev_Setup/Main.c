@@ -12,7 +12,7 @@ MODULE_DESCRIPTION("A Simple Hello World module");
 static int  hello_init(void)
 {
 
-    printk(KERN_INFO "MyLinuxModule: Hello Cruel Wrold ! \n");
+    printk(KERN_INFO "MyLinuxModule: Hello Cruel World ! \n");
     return 0; // Non-zero return means that the module couldn't be loaded.
 }
 

@@ -32,7 +32,7 @@ __ mknod used to link the character device to the file system into the folder /d
 the option "c" is used to indicate that's a character device, and the major and minor numbers should be passed
 
 ### Minor and Major numbers
-Each device has a unique major number
+Each device has a unique major number, each device can have multiple minor numbers they will act as some instances of it.
 
 
 
