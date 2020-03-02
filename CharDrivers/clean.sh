@@ -1,6 +1,6 @@
 #!/bin/sh
 module="Main.ko"
-device="myNewDevice"
+device="myCharDevice"
 
 rmmod $module
 rm /dev/${device}0

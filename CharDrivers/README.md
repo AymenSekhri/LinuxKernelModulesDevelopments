@@ -60,14 +60,3 @@ this function is used to register cdev structure in the kernel.
 ### cdev_del
 ``` void cdev_del(struct cdev *dev); ``` 
 this function is used to unregister cdev structure in the kernel.
-
-
-
-
-
-
-
-
-
-
-
