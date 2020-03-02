@@ -47,14 +47,14 @@ contains some information, includes dev_t (which are the major and minor version
 ### *cdev* Structure
 most important field of it is file_operations which is a structure to identify the function called for files system calls (open,read, write ...).
 ### *cdev_init*
-```void cdev_init(struct cdev *cdev, struct file_operations *fops);```
+```void cdev_init(struct cdev *cdev, struct file_operations *fops);```<br>
 this function is used to initialize the allocated cdev structure and link file_operations structure to it.<br>
 idk why cant we link it directly by ``` cdev->file_operations = myops; ``` maybe it does something other than just linking myops.<br>
 Note: *cdev* should be allocated beforehand or use *cdev_alloc*;<br>
 Note2 : the *cdev* structure should be freed in the module clean up function.<br>
 
 ### *cdev_add*
-``` int cdev_add(struct cdev *dev, dev_t num, unsigned int count);```
+``` int cdev_add(struct cdev *dev, dev_t num, unsigned int count);```<br>
 this function is used to register cdev structure in the kernel.
 
 
