@@ -57,7 +57,6 @@ Note2 : the *cdev* structure should be freed in the module clean up function.<br
 ``` int cdev_add(struct cdev *dev, dev_t num, unsigned int count);```<br>
 this function is used to register cdev structure in the kernel.
 
-
 ### *cdev_del*
 ``` void cdev_del(struct cdev *dev); ``` 
 this function is used to unregister cdev structure in the kernel.

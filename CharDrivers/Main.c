@@ -5,31 +5,54 @@
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/cdev.h>
+#include <linux/uaccess.h>
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Aymen Sekhri");
 MODULE_DESCRIPTION("A Simple Hello World module");
 dev_t majMin;
 const int numOfDevices = 4;
-struct cdev **charDevices;
+struct device_info
+{
+	char *data;
+	struct cdev *chardev;
+};
+
+struct device_info *charDevices;
+
+#define DEVICE_BLOCK_SIZE 100
+
+static void device_info_cleanup(void);
 
 int device_open(struct inode *myinode, struct file *fd)
 {
+	printk(KERN_INFO "MyLinuxModule: device has been opened.\n");
 	return 0;
 }
 
 int device_release(struct inode *myinode, struct file *fd)
 {
+	printk(KERN_INFO "MyLinuxModule: device has been released.\n");
 	return 0;
 }
-
-ssize_t device_read(struct file* fd, struct kobject * kobj, struct bin_attribute* attr,char *buff, loff_t kk, size_t size){
-	return 2;
+ssize_t device_read(struct file *fd, char __user *buf, size_t size, loff_t *offset)
+{
+	printk(KERN_INFO "MyLinuxModule: device is being read from.\n");
+	if (*offset < DEVICE_BLOCK_SIZE)
+	{
+		copy_to_user(buf, charDevices[MINOR(fd->f_inode->i_rdev)].data, DEVICE_BLOCK_SIZE);
+		*offset = *offset + DEVICE_BLOCK_SIZE;
+		return DEVICE_BLOCK_SIZE;
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 struct file_operations myfops = {
 	.owner = THIS_MODULE,
-	.read = 0,
+	.read = device_read,
 	.write = 0,
 	.open = device_open,
 	.release = device_release,
@@ -38,10 +61,15 @@ struct file_operations myfops = {
 
 int setup_cdevice(int index)
 {
+	char *device_message = "Hello from the other side\n";
 	//initiate the cdev struct
-	cdev_init(charDevices[index], &myfops);
+	charDevices[index].chardev = kmalloc(sizeof(struct cdev), GFP_KERNEL);
+	cdev_init(charDevices[index].chardev, &myfops);
+	//initiate the data
+	charDevices[index].data = kmalloc(DEVICE_BLOCK_SIZE, GFP_KERNEL);
+	memcpy(charDevices[index].data,device_message,strlen(device_message));
 
-	int err = cdev_add(charDevices[index], MKDEV(MAJOR(majMin), MINOR(majMin) + index), numOfDevices);
+	int err = cdev_add(charDevices[index].chardev, MKDEV(MAJOR(majMin), MINOR(majMin) + index), numOfDevices);
 	if (err)
 	{
 		printk(KERN_INFO "MyLinuxModule: cdev_add Error : %X\n", err);
@@ -52,10 +80,7 @@ int setup_cdevice(int index)
 static int __init hello_init(void)
 {
 	charDevices = kmalloc(sizeof(charDevices) * numOfDevices, GFP_KERNEL);
-	for (size_t i = 0; i < numOfDevices; i++)
-	{
-		charDevices[i] = kmalloc(sizeof(struct cdev), GFP_KERNEL);
-	}
+
 	//register the char device
 	int err = alloc_chrdev_region(&majMin, 0, numOfDevices, "myCharDevice"); // register 4 of them
 	if (err == 0)
@@ -70,8 +95,11 @@ static int __init hello_init(void)
 
 	for (size_t i = 0; i < numOfDevices; i++)
 	{
+
 		if (setup_cdevice(i))
 		{
+			//TODO: free others too.
+			device_info_cleanup();
 			unregister_chrdev_region(majMin, numOfDevices);
 			goto freeingMem;
 		}
@@ -83,17 +111,27 @@ freeingMem:
 	return -1;
 }
 
-static void hello_cleanup(void)
+static void device_info_cleanup()
 {
 	for (size_t i = 0; i < numOfDevices; i++)
 	{
-		if (charDevices[i])
+		if (charDevices[i].chardev)
 		{
-			cdev_del(charDevices[i]);
-			kfree(charDevices[i]);
+			cdev_del(charDevices[i].chardev);
+			kfree(charDevices[i].chardev);
+		}
+		if (charDevices[i].data)
+		{
+			kfree(charDevices[i].data);
 		}
 	}
+}
 
+static void hello_cleanup(void)
+{
+
+	device_info_cleanup();
+	kfree(charDevices);
 	unregister_chrdev_region(majMin, numOfDevices);
 	printk(KERN_INFO "MyLinuxModule: Cleaning up module.\n");
 }
