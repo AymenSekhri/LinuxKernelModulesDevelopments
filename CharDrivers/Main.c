@@ -40,9 +40,26 @@ ssize_t device_read(struct file *fd, char __user *buf, size_t size, loff_t *offs
 	printk(KERN_INFO "MyLinuxModule: device is being read from.\n");
 	if (*offset < DEVICE_BLOCK_SIZE)
 	{
-		copy_to_user(buf, charDevices[MINOR(fd->f_inode->i_rdev)].data, DEVICE_BLOCK_SIZE);
-		*offset = *offset + DEVICE_BLOCK_SIZE;
-		return DEVICE_BLOCK_SIZE;
+		int true_len = (size > DEVICE_BLOCK_SIZE ? DEVICE_BLOCK_SIZE : size);
+		copy_to_user(buf, charDevices[MINOR(fd->f_inode->i_rdev)].data, true_len);
+		*offset = *offset + true_len;
+		return true_len;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+ssize_t device_write(struct file *fd,const char __user *buf, size_t size, loff_t *offset)
+{
+	printk(KERN_INFO "MyLinuxModule: device is being written to.\n");
+	if (*offset < DEVICE_BLOCK_SIZE)
+	{
+		int true_len = (size > DEVICE_BLOCK_SIZE ? DEVICE_BLOCK_SIZE : size);
+		copy_from_user(charDevices[MINOR(fd->f_inode->i_rdev)].data, buf, true_len);
+		*offset = *offset + true_len;
+		return true_len;
 	}
 	else
 	{
@@ -53,7 +70,7 @@ ssize_t device_read(struct file *fd, char __user *buf, size_t size, loff_t *offs
 struct file_operations myfops = {
 	.owner = THIS_MODULE,
 	.read = device_read,
-	.write = 0,
+	.write = device_write,
 	.open = device_open,
 	.release = device_release,
 	.llseek = 0,
@@ -67,7 +84,7 @@ int setup_cdevice(int index)
 	cdev_init(charDevices[index].chardev, &myfops);
 	//initiate the data
 	charDevices[index].data = kmalloc(DEVICE_BLOCK_SIZE, GFP_KERNEL);
-	memcpy(charDevices[index].data,device_message,strlen(device_message));
+	memcpy(charDevices[index].data, device_message, strlen(device_message));
 
 	int err = cdev_add(charDevices[index].chardev, MKDEV(MAJOR(majMin), MINOR(majMin) + index), numOfDevices);
 	if (err)
