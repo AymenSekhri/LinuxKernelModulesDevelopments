@@ -12,11 +12,11 @@ Is either a physical or virtual hardware which will be communicated by its drive
 ### Minor and Major numbers
 Each device has a unique major number, each device can have multiple minor numbers they will act as some instances of it.
 
-#### alloc_chrdev_region
+### alloc_chrdev_region
 ``` int alloc_chrdev_region(dev_t *dev, unsigned int firstminor, unsigned int count, char *name);```<br>
 alloc_chrdev_region is used to register a major and minor numbers dynamically for the device.
 
-#### register_chrdev_region
+### register_chrdev_region
 ``` int register_chrdev_region(dev_t first, unsigned int count,char *name);```<br>
 register_chrdev_region is used to register predefined major and minor numbers.
 
