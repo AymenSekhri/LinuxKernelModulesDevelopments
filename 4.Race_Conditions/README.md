@@ -13,19 +13,19 @@ Mutex is a semaphore but with a maximum value of 1, which means that only one pr
 
 ## Create and Use a Semaphore/Mutex
 ``` void sema_init(struct semaphore *sem, int val);```<br>
-Initiates the semaphore.
+Initiates the semaphore.<br>
 ``` void init_MUTEX(struct semaphore *sem); ```<br>
-Initiates the mutex.
+Initiates the mutex.<br>
 ```void init_MUTEX_LOCKED(struct semaphore *sem); ```<br>
-Initiates a locked mutex (its value is 0).
+Initiates a locked mutex (its value is 0).<br>
 ``` void down(struct semaphore *sem); ```<br>
-uninterruptible down function. This should not be used because it may make a process harder to kill.
+uninterruptible down function. This should not be used because it may make a process harder to kill.<br>
 ``` int down_interruptible(struct semaphore *sem); ```<br>
-interruptable down function. which stops waiting if the KILL_SIG (or other signals) is sent from user mode, it returns non-zero integer at that case.
+interruptable down function. which stops waiting if the KILL_SIG (or other signals) is sent from user mode, it returns non-zero integer at that case.<br>
 ``` int down_trylock(struct semaphore *sem); ```<br>
-down function but does not sleep if it can't hold the semaphore/mutex.
+down function but does not sleep if it can't hold the semaphore/mutex.<br>
 ``` void up(struct semaphore *sem); ```<br>
-up function (releases the semaphore/mutex).
+up function (releases the semaphore/mutex).<br>
 
 ## Reader/Writer Semaphore
 ``` void init_rwsem(struct rw_semaphore *sem); ```<br>
