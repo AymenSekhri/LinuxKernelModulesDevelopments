@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "init.h": "c",
+        "module.h": "c",
+        "workqueue.h": "c",
+        "list.h": "c",
+        "types.h": "c",
+        "posix_types.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Enabled",
+    "clang.cflags": [
+        "-std=c99",
+        "-I/usr/src/linux-headers-5.0.0-25-generic/include/",
+        "-DMODULE",
+    ]
+}

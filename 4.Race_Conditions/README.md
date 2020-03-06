@@ -38,7 +38,24 @@ up function (releases the semaphore/mutex).<br>
 ``` void downgrade_write(struct rw_semaphore *sem); ```<br>
 Reader/Writer Semaphore is the same as the normal semaphore except it allows either one writer to hold the semaphore or unlimited readers. This is rarely used, but it might be useful.
 
+## Completion
+in case where a thread class another thread and waits unit completes a task to continue like the following example:
+``` 
+struct semaphore sem;
+init_MUTEX_LOCKED(&sem);
+start_external_task(&sem);
+down(&sem); 
+```
+The semaphore in this case will have a race condition due the internal implementation of the semaphore in Linux which happens when the the waiting thread is woke up  and going to deallocate the semaphore object, before the other thread finishes up function. Plus, the semaphores are not optimized for this case, and we better use completion for it.
 
+``` init_completion(&my_completion); ```<br>
+Initiates the completion.<br>
+``` void wait_for_completion(struct completion *c); ```<br>
+Wait until the "completion semaphore" is released.<br>
+``` void complete(struct completion *c); ```<br>
+Wake up one waiting thread.<br>
+``` void complete_all(struct completion *c); ```<br>
+Wake up all waiting threads.<br>
 
 
 
