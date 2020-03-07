@@ -58,8 +58,15 @@ Wake up one waiting thread.<br>
 Wake up all waiting threads.<br>
 
 ## Spinlocks
-When the waiting for semaphore is small, semaphore may be not the best for performance. or if the kernel is uni-processor non-preemptive you cant make a thread sleep because there is no other thread to wake it, same case for interrupt handlers (even for MultiProcessor systems or preemptive kernel).<br>
-This where the Spinlock comes in place, unlike the semaphore it does not make the calling process sleep, it keeps checking for the release of lock. Another difference is that Spinlock is just a binary value (locked or unlocked).<br>
+### Preemptive Kernel
+Preemptive Kernel is a kernel where the scheduler is active even for drivers, most modern operating systems use Preemptive kernels<br>
+### Non-Preemptive Kernel
+Non-Preemptive Kernel is a kernel where the scheduler does not switch to other process until the process exits its kernel mode or voluntarily gives up the CPU<br>
+### Spinlocks
+Unlike the semaphore it does not make the calling thread sleep, it keeps checking for the release of lock in loop (busy waiting). Another difference is that Spinlock is just a binary value (locked or unlocked).<br>
+When the waiting for semaphore is a small period, semaphore may be not the best for performance. and spinlock is more suitable <br>
+Spinlocks are intended to be used in Multi-Processor or Preemptive systems. because if Uni-Processor and Non-Preemptive then the CPU will spin forever if the spinlock is locked. same case for interrupt handlers (even for MultiProcessor systems or preemptive kernel).<br>
+
 ``` void spin_lock_init(spinlock_t *lock);```<br>
 ``` void spin_lock(spinlock_t *lock);```<br>
 ``` void spin_unlock(spinlock_t *lock);```<br>
