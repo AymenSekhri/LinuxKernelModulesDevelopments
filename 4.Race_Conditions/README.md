@@ -66,10 +66,52 @@ Non-Preemptive Kernel is a kernel where the scheduler does not switch to other p
 Unlike the semaphore it does not make the calling thread sleep, it keeps checking for the release of lock in loop (busy waiting). Another difference is that Spinlock is just a binary value (locked or unlocked).<br>
 When the waiting for semaphore is a small period, semaphore may be not the best for performance. and spinlock is more suitable <br>
 Spinlocks are intended to be used in Multi-Processor or Preemptive systems. because if Uni-Processor and Non-Preemptive then the CPU will spin forever if the spinlock is locked. same case for interrupt handlers (even for MultiProcessor systems or preemptive kernel).<br>
+``` void spin_lock_init(spinlock_t *lock); ```<br>
+Initiates the lock.<br>
+``` void spin_lock(spinlock_t *lock); ```<br>
+``` void spin_unlock(spinlock_t *lock); ```<br>
+lock and unlock normal spinlock.<br>
+``` void spin_lock_irqsave(spinlock_t *lock, unsigned long flags); ```<br>
+``` void spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags); ```<br>
+lock and unlock a spinlock that disables the interrupts and return the interrupt flags to the user.<br>
+``` void spin_lock_irq(spinlock_t *lock); ```<br>
+``` void spin_unlock_irq(spinlock_t *lock); ```<br>
+lock and unlock a spinlock that disables the interrupts.<br>
+``` void spin_lock_bh(spinlock_t *lock) ```<br>
+``` void spin_unlock_bh(spinlock_t *lock); ```<br>
+lock and unlock a spinlock that disables software interrupts and enables hardware interrupts.<br>
+``` int spin_trylock(spinlock_t *lock); ```<br>
+``` int spin_trylock_bh(spinlock_t *lock); ```<br>
+Checking the spinlock without spinning.<br>
+### Reader/Writer Spinlock
+Same concept of reader/writer semaphore but for spinlock; one writer and unlimited readers.
+```
+void rwlock_init(rwlock_t *my_rwlock); 
+void read_lock(rwlock_t *lock);
+void read_lock_irqsave(rwlock_t *lock, unsigned long flags);
+void read_lock_irq(rwlock_t *lock);
+void read_lock_bh(rwlock_t *lock);
+void read_unlock(rwlock_t *lock);
+void read_unlock_irqrestore(rwlock_t *lock, unsigned long flags);
+void read_unlock_irq(rwlock_t *lock);
+void read_unlock_bh(rwlock_t *lock);
+void write_lock(rwlock_t *lock);
+void write_lock_irqsave(rwlock_t *lock, unsigned long flags);
+void write_lock_irq(rwlock_t *lock);
+void write_lock_bh(rwlock_t *lock);
+int write_trylock(rwlock_t *lock);
+void write_unlock(rwlock_t *lock);
+void write_unlock_irqrestore(rwlock_t *lock, unsigned long flags);
+void write_unlock_irq(rwlock_t *lock);
+void write_unlock_bh(rwlock_t *lock);
+```
 
-``` void spin_lock_init(spinlock_t *lock);```<br>
-``` void spin_lock(spinlock_t *lock);```<br>
-``` void spin_unlock(spinlock_t *lock);```<br>
+### Spinlock Rules
+* When a spinlock is hold, the kernel disable preemption (thread will be rescheduled).
+* In code that holds the spinlock, no function that may cause sleep should be present (Atomic code), because if it is, then thread will be rescheduled.
+* If there is a code that has a spinlock and there is an interrupt handler that needs to hold a spinlock, you must use spinlock functions that disables the interrupts.
+
+
 
 
 
