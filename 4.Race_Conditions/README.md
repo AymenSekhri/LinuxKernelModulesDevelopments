@@ -110,7 +110,7 @@ void write_unlock_bh(rwlock_t *lock);
 * When a spinlock is hold, the kernel disable preemption (thread will be rescheduled).
 * In code that holds the spinlock, no function that may cause sleep should be present (Atomic code), because if it is, then thread will be rescheduled.
 * If there is a code that has a spinlock and there is an interrupt handler that needs to hold a spinlock, you must use spinlock functions that disables the interrupts.
-
+* If a function that requires a lock calls a function requires a lock, the thread will keep spinning forever
 
 
 
