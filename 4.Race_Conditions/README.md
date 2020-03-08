@@ -110,13 +110,77 @@ void write_unlock_bh(rwlock_t *lock);
 * When a spinlock is hold, the kernel disable preemption (thread will be rescheduled).
 * In code that holds the spinlock, no function that may cause sleep should be present (Atomic code), because if it is, then thread will be rescheduled.
 * If there is a code that has a spinlock and there is an interrupt handler that needs to hold a spinlock, you must use spinlock functions that disables the interrupts.
-* If a function that requires a lock calls a function requires a lock, the thread will keep spinning forever
 
+## Semaphore/Mutex/Spinlock Rules
+* If a function that requires a lock calls a function requires a lock, the thread will keep spinning forever, You should never do this.
+* If a code needs to hold two locks then all codes must acquire the locks in the same order, otherwise one thread may hold lock1 and seeks for lock2, while another thread holds a lock2 and seeks for lock1 and they both be hanging for ever.
+* In device drivers you should use lock for the whole driver and optimize to smaller chunks of code only if you have reason to, use the tool *lock-meter* to measure the time spent on each lock.
 
+## Locking Alternatives
+### Lock-Free Algorithms
+In the case of reader/writer if there is only one reader and one writer then it can be represented using a circular buffer with two indexes one for next data to read and one for the next data to write, if the write/read operation happen before updating the index then this algorithm does not require a lock.
 
+### Atomic Variables
+If you need a lock for a simple variable then using semaphore/spinlock is overkill and not good for performance, thus making this variable atomic is a better solution.<br>
+Atomic code means that code runs as whole with absolutely no interruption, not from scheduler nor from the interrupts nor from CPU pipelining, some CPUs uses a dedicated instructions for such thing.<br>
+atomic_t DOES NOT accept full integer value but only 24bit.<br>
+```
+void atomic_set(atomic_t *v, int i);
+int atomic_read(atomic_t *v);
+```
+<br>
+Write and read to/from the variable.
+<br>
+```
+void atomic_add(int i, atomic_t *v);
+void atomic_sub(int i, atomic_t *v);
+void atomic_inc(atomic_t *v);
+void atomic_dec(atomic_t *v);
+```
+<br>
+As the names tell !!
+<br>
+```
+int atomic_inc_and_test(atomic_t *v);
+int atomic_dec_and_test(atomic_t *v);
+int atomic_sub_and_test(int i, atomic_t *v);
+```
+<br>
+Do the operation and test if result it zero.
+<br>
+```
+int atomic_add_negative(int i, atomic_t *v);
+```
+<br>
+Do the operation and test if result it negative.
+<br>
+int atomic_add_return(int i, atomic_t *v);
+int atomic_sub_return(int i, atomic_t *v);
+int atomic_inc_return(atomic_t *v);
+int atomic_dec_return(atomic_t *v);
+```
+<br>
+Do the operation and return the result.
+<br>
 
+#### Note
+for example: <br>
+```
+atomic_sub(amount, &first_atomic);
+atomic_add(amount, &second_atomic);
+```
+<br>
+If it's not safe to run some code between the two lines then you should consider doing locking rather than atomic variable because each line is atomic but not both.
 
-
-
-
-
+### Atomic Bit Operations
+same as the atomic variable but with bit operations.<br>
+```
+void set_bit(nr, void *addr);
+void clear_bit(nr, void *addr);
+void change_bit(nr, void *addr);
+test_bit(nr, void *addr);
+int test_and_set_bit(nr, void *addr);
+int test_and_clear_bit(nr, void *addr);
+int test_and_change_bit(nr, void *addr);
+```
+<br>
