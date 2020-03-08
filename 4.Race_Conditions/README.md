@@ -162,7 +162,7 @@ for example: <br>
 atomic_sub(amount, &first_atomic);
 atomic_add(amount, &second_atomic);
 ```
-If it's not safe to run some code between the two lines then you should consider doing locking rather than atomic variable because each line is atomic but not both.
+If it's not safe to run some code between the two lines then you should consider doing locking rather than atomic variables because each line is atomic but not both.
 
 ### Atomic Bit Operations
 same as the atomic variable but with bit operations.<br>
@@ -194,16 +194,14 @@ void write_seqlock(seqlock_t *lock);
 /* Write Your Stuff Here */
 void write_sequnlock(seqlock_t *lock);
 ```
-<br>
+
 ```
 unsigned int read_seqbegin_irqsave(seqlock_t *lock,
 unsigned long flags);
 int read_seqretry_irqrestore(seqlock_t *lock, unsigned int seq,
 unsigned long flags);
 ```
-<br>
 These function are used when the lock is accessed in the interrupt handlers too (they disable interrupts same as spinlocks).<br>
-
 ```
 void write_seqlock_irqsave(seqlock_t *lock, unsigned long flags);
 void write_seqlock_irq(seqlock_t *lock);
