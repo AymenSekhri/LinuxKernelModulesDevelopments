@@ -128,7 +128,6 @@ atomic_t DOES NOT accept full integer value but only 24bit.<br>
 void atomic_set(atomic_t *v, int i);
 int atomic_read(atomic_t *v);
 ```
-<br>
 Write and read to/from the variable.<br>
 
 ```
@@ -137,21 +136,16 @@ void atomic_sub(int i, atomic_t *v);
 void atomic_inc(atomic_t *v);
 void atomic_dec(atomic_t *v);
 ```
-<br>
 As the names tell !!<br>
-
 ```
 int atomic_inc_and_test(atomic_t *v);
 int atomic_dec_and_test(atomic_t *v);
 int atomic_sub_and_test(int i, atomic_t *v);
 ```
-<br>
 Do the operation and test if result it zero.<br>
-
 ```
 int atomic_add_negative(int i, atomic_t *v);
 ```
-<br>
 Do the operation and test if result it negative.<br>
 ```
 int atomic_add_return(int i, atomic_t *v);
@@ -159,7 +153,6 @@ int atomic_sub_return(int i, atomic_t *v);
 int atomic_inc_return(atomic_t *v);
 int atomic_dec_return(atomic_t *v);
 ```
-<br>
 Do the operation and return the result.<br>
 
 
@@ -169,7 +162,6 @@ for example: <br>
 atomic_sub(amount, &first_atomic);
 atomic_add(amount, &second_atomic);
 ```
-<br>
 If it's not safe to run some code between the two lines then you should consider doing locking rather than atomic variable because each line is atomic but not both.
 
 ### Atomic Bit Operations
