@@ -129,8 +129,8 @@ void atomic_set(atomic_t *v, int i);
 int atomic_read(atomic_t *v);
 ```
 <br>
-Write and read to/from the variable.
-<br>
+Write and read to/from the variable.<br>
+
 ```
 void atomic_add(int i, atomic_t *v);
 void atomic_sub(int i, atomic_t *v);
@@ -138,30 +138,30 @@ void atomic_inc(atomic_t *v);
 void atomic_dec(atomic_t *v);
 ```
 <br>
-As the names tell !!
-<br>
+As the names tell !!<br>
+
 ```
 int atomic_inc_and_test(atomic_t *v);
 int atomic_dec_and_test(atomic_t *v);
 int atomic_sub_and_test(int i, atomic_t *v);
 ```
 <br>
-Do the operation and test if result it zero.
-<br>
+Do the operation and test if result it zero.<br>
+
 ```
 int atomic_add_negative(int i, atomic_t *v);
 ```
 <br>
-Do the operation and test if result it negative.
-<br>
+Do the operation and test if result it negative.<br>
+```
 int atomic_add_return(int i, atomic_t *v);
 int atomic_sub_return(int i, atomic_t *v);
 int atomic_inc_return(atomic_t *v);
 int atomic_dec_return(atomic_t *v);
 ```
 <br>
-Do the operation and return the result.
-<br>
+Do the operation and return the result.<br>
+
 
 #### Note
 for example: <br>
@@ -184,3 +184,39 @@ int test_and_clear_bit(nr, void *addr);
 int test_and_change_bit(nr, void *addr);
 ```
 <br>
+
+### Seqlocks
+Seqlocks work in situations where the resource to be protected is small, simple, and frequently accessed, and where write access is rare but must be fast. Essentially, hey work by allowing readers free access to the resource but requiring those readers to checkfor collisions with writers and, when such a collision happens, retry their access.<br>
+
+```
+seqlock_t lock2;
+seqlock_init(&lock2);
+//The Reader
+unsigned int seq;
+do {
+seq = read_seqbegin(&the_lock);
+/* Read Your Stuff Here */
+} while read_seqretry(&the_lock, seq);
+// The Writer
+void write_seqlock(seqlock_t *lock);
+/* Write Your Stuff Here */
+void write_sequnlock(seqlock_t *lock);
+```
+<br>
+```
+unsigned int read_seqbegin_irqsave(seqlock_t *lock,
+unsigned long flags);
+int read_seqretry_irqrestore(seqlock_t *lock, unsigned int seq,
+unsigned long flags);
+```
+<br>
+These function are used when the lock is accessed in the interrupt handlers too (they disable interrupts same as spinlocks).<br>
+
+```
+void write_seqlock_irqsave(seqlock_t *lock, unsigned long flags);
+void write_seqlock_irq(seqlock_t *lock);
+void write_seqlock_bh(seqlock_t *lock);
+void write_sequnlock_irqrestore(seqlock_t *lock, unsigned long flags);
+void write_sequnlock_irq(seqlock_t *lock);
+void write_sequnlock_bh(seqlock_t *lock);
+```
