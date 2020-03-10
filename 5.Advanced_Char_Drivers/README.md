@@ -17,5 +17,6 @@ The _cmd_ argument represent the command which _ioctl_ will do, In order to not 
 There are few macros to setup the cmd command:
 * _**_IO(type,nr)**_: to setup cmd command without arguments.
 * _**_IOR(type,nr,datatype)**_: to setup cmd command to read.
-* * _**_IOW(type,nr,datatype)**_: to setup cmd command to write.
-* * * _**_IOWR(type,nr,datatype)**_: to setup cmd command to write and read.
+* _**_IOW(type,nr,datatype)**_: to setup cmd command to write.
+* _**_IOWR(type,nr,datatype)**_: to setup cmd command to write and.
+And there is some macros to decode it: _**_IOC_DIR(nr)**_, _**_IOC_TYPE(nr)**_, _**_IOC_NR(nr)**_, and _**_IOC_SIZE(nr)**_.
