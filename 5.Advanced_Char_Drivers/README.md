@@ -19,4 +19,15 @@ There are few macros to setup the cmd command:
 * _**_IOR(type,nr,datatype)**_: to setup cmd command to read.
 * _**_IOW(type,nr,datatype)**_: to setup cmd command to write.
 * _**_IOWR(type,nr,datatype)**_: to setup cmd command to write and.
-And there is some macros to decode it: _**_IOC_DIR(nr)**_, _**_IOC_TYPE(nr)**_, _**_IOC_NR(nr)**_, and _**_IOC_SIZE(nr)**_.
+And there is some macros to decode it: _**_IOC_DIR(nr)**_, _**_IOC_TYPE(nr)**_, _**_IOC_NR(nr)**_, and _**_IOC_SIZE(nr)**_.<br>
+
+### Predefined Commands
+These commands are defined by the kernel and if you define them for your driver, the driver's function won't be called at all. Here is some:
+#### FIOCLEX
+Set the close-on-exec flag (File IOctl CLose on EXec). Setting this flag causes the file descriptor to be closed when the calling process executes a new program.
+#### FIONCLEX
+Clear the close-on-exec flag (File IOctl Not CLos on EXec). The command
+restores the common file behavior, undoing what FIOCLEX above does.
+#### FIOQSIZE
+This command returns the size of a file or directory; when applied to a device
+file, however, it yields an ENOTTY error return.
