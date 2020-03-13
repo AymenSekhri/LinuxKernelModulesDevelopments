@@ -31,3 +31,27 @@ restores the common file behavior, undoing what FIOCLEX above does.
 #### FIOQSIZE
 This command returns the size of a file or directory; when applied to a device
 file, however, it yields an ENOTTY error return.
+
+## Accessing User Space Memory From the Kernel
+When your driver is executing, the user space process which called the driver is not necessary is still in memory, so direct access to user space pointer may cause some problems (page fault, data from other process, not user data at all). Thus, there are some function used to bring some of the user mode process memory.
+### *copy_from_user*/*copy_to_user*
+```
+unsigned long copy_to_user (void __user* to, const void* from, unsigned long	n);
+unsigned long copy_from_user (void* to, const void __user* from,unsigned long n);
+```
+As have been explained before.
+### *access_ok*
+```int access_ok(int type, const void *addr, unsigned long size);```<br>
+This function checks if the user pointer is indeed in user space not the kernel space.<br>
+Unlike most kernel functions, access_ok returns a boolean value: 1 for success (access
+is OK) and 0 for failure (access is not OK). If it returns false, the driver should usually
+return -EFAULT to the caller.<br>
+As of a commit in 2019, access_ok() no long has the type argument, so the VERIFY_WRITE versus VERIFY_READ point is moot.
+### *__put_user*/*__get_user* 
+```
+__put_user(datum, ptr)
+__get_user(local, ptr)
+```
+These two function are used to write/read from the user mode pointer *ptr* to the local variable *datum*/*local*, the size of data to be transferred is determined by the size of the datatype pointer by the pointer *ptr*. These function are fast and do less checks so you need to check if the pointer is user pointer by *access_ok* function.<br>
+Note that these function accept data types of the size 2/4/8, otherwise it will generate a compile time error “conversion to non-scalar type requested.”.
+
