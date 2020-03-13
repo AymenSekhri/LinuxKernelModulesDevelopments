@@ -33,13 +33,14 @@ This command returns the size of a file or directory; when applied to a device
 file, however, it yields an ENOTTY error return.
 
 ## Accessing User Space Memory From the Kernel
-When your driver is executing, the user space process which called the driver is not necessary is still in memory, so direct access to user space pointer may cause some problems (page fault, data from other process, not user data at all). Thus, there are some function used to bring some of the user mode process memory.
+When your driver is executing, the user space process which called the driver is not necessary is still in memory, so direct access to user space pointer may cause some problems (page fault, data from other process, not user data at all). Thus, there are some function used to bring some of the user mode process memory.<br>
+The kernel knows which process that called the driver so you don't have to specify it in the following functions.
 ### *copy_from_user*/*copy_to_user*
 ```
 unsigned long copy_to_user (void __user* to, const void* from, unsigned long	n);
 unsigned long copy_from_user (void* to, const void __user* from,unsigned long n);
 ```
-As have been explained before.
+As has been explained before.
 ### *access_ok*
 ```int access_ok(int type, const void *addr, unsigned long size);```<br>
 This function checks if the user pointer is indeed in user space not the kernel space.<br>
@@ -55,3 +56,29 @@ __get_user(local, ptr)
 These two function are used to write/read from the user mode pointer *ptr* to the local variable *datum*/*local*, the size of data to be transferred is determined by the size of the datatype pointer by the pointer *ptr*. These function are fast and do less checks so you need to check if the pointer is user pointer by *access_ok* function.<br>
 Note that these function accept data types of the size 2/4/8, otherwise it will generate a compile time error “conversion to non-scalar type requested.”.
 
+## Capabilities and Restricted Operations
+There predefined capabilities or permission in the kernel for the drivers to restrict some operations for some user mode processes. To check if the calling process has a certain permission we use the following function:
+```
+int capable(int capability);
+```
+To use it:
+```
+if (! capable (CAP_SYS_ADMIN))
+	return -EPERM;
+```
+And here is some of the permissions defined in *<linux/sched.h>* :
+#### CAP_DAC_OVERRIDE
+The ability to override access restrictions (data access control, or DAC) on files
+and directories.
+#### CAP_NET_ADMIN
+The ability to perform network administration tasks, including those that affect
+network interfaces.
+#### CAP_SYS_MODULE
+The ability to load or remove kernel modules.
+CAP_SYS_RAWIO
+#### The ability to perform “raw” I/O operations. Examples include accessing device
+ports or communicating directly with USB devices.
+#### CAP_SYS_ADMIN
+A catch-all capability that provides access to many system administration operations.
+#### CAP_SYS_TTY_CONFIG
+The ability to perform tty configuration tasks.
