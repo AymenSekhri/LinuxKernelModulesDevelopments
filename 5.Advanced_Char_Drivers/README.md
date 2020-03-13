@@ -82,3 +82,8 @@ ports or communicating directly with USB devices.
 A catch-all capability that provides access to many system administration operations.
 #### CAP_SYS_TTY_CONFIG
 The ability to perform tty configuration tasks.
+
+## Sending Command Using write Instead of ioctl
+Instead of using ioctl it is possible to use write to interpret the commands for the driver. This method is actually used by the console driver using escape characters to move curser, new line, tab ...
+
+## Blocking I/O
