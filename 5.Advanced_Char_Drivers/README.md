@@ -136,3 +136,42 @@ ssize_t sleepy_write (struct file *filp, const char __user *buf, size_t count,lo
 ```
 If a process tries to read when no process wrote before it will block, until another process does write something. There is a race condition in this code which is when a two processes are asleep and another process writes and wakes them both up, both will check the flag and both may pass that condition and executed. in this example it may not be important but in other situations waiting the event and setting the flag should have been an atomic operation (we may use spinlocks instead but we may not use semaphores because Linux might disabled  the interrupts at the condition check)//TODO: check if this is true.<br>
 Note that is a process may want block on write if the buffer is full for example, you have use different wait queue variable. 
+
+### Example
+```
+static ssize_t scull_p_read (struct file *filp, char __user *buf, size_t count,loff_t *f_pos)
+{
+	struct scull_pipe *dev = filp->private_data;
+	if (down_interruptible(&dev->sem))
+		return -ERESTARTSYS;
+	while (dev->rp = = dev->wp) { /* nothing to read */
+		up(&dev->sem); /* release the lock */
+		if (filp->f_flags & O_NONBLOCK)
+		return -EAGAIN;
+		PDEBUG("\"%s\" reading: going to sleep\n", current->comm);
+		if (wait_event_interruptible(dev->inq, (dev->rp != dev->wp)))
+		return -ERESTARTSYS; /* signal: tell the fs layer to handle it */
+		/* otherwise loop, but first reacquire the lock */
+		if (down_interruptible(&dev->sem))
+		return -ERESTARTSYS;
+	}
+	/* ok, data is there, return something */
+	if (dev->wp > dev->rp)
+		count = min(count, (size_t)(dev->wp - dev->rp));
+	else /* the write pointer has wrapped, return data up to dev->end */
+		count = min(count, (size_t)(dev->end - dev->rp));
+	if (copy_to_user(buf, dev->rp, count)) {
+		up (&dev->sem);
+		return -EFAULT;
+	}
+	dev->rp += count;
+	if (dev->rp = = dev->end)
+		dev->rp = dev->buffer; /* wrapped */
+	up (&dev->sem);
+	/* finally, awake any writers and return */
+	wake_up_interruptible(&dev->outq);
+	PDEBUG("\"%s\" did read %li bytes\n",current->comm, (long)count);
+	return count;
+}
+```
+When *wait_event_interruptible* is called and the process is waken up, we should start the race for the resource immediately by trying to hold the semaphore using *down_interruptible*.
