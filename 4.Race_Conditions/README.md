@@ -215,9 +215,11 @@ void write_sequnlock_bh(seqlock_t *lock);
 ### Semaphore
 * Used in uniprocessor or when the waiting is long.
 * CAN NOT used in interrupt handlers.
+* You should (not necessary) drop the semaphore before going to sleep voluntarily.
 ### Spinlocks
 * More efficient in the multiprocessor or when the waiting is short.
 * Can be used in interrupt handlers but only in multiprocessor.
+* You should (not necessary) drop the spinlock before going to sleep voluntarily.
 
 ## NOTE
 Consider the code:

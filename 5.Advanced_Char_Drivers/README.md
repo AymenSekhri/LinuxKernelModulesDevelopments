@@ -1,4 +1,4 @@
-# Character Drivers
+# Advanced Character Drivers
 ## *ioctl* System Call
 This system call is used to configure the device, it definition in user mode is: <br>
 ```int ioctl(int fd, unsigned long cmd, ...);```<br>
@@ -137,7 +137,7 @@ ssize_t sleepy_write (struct file *filp, const char __user *buf, size_t count,lo
 If a process tries to read when no process wrote before it will block, until another process does write something. There is a race condition in this code which is when a two processes are asleep and another process writes and wakes them both up, both will check the flag and both may pass that condition and executed. in this example it may not be important but in other situations waiting the event and setting the flag should have been an atomic operation (we may use spinlocks instead but we may not use semaphores because Linux might disabled  the interrupts at the condition check)//TODO: check if this is true.<br>
 Note that is a process may want block on write if the buffer is full for example, you have use different wait queue variable. 
 
-### Example
+### Blocking I/O Example
 ```
 static ssize_t scull_p_read (struct file *filp, char __user *buf, size_t count,loff_t *f_pos)
 {
@@ -147,13 +147,13 @@ static ssize_t scull_p_read (struct file *filp, char __user *buf, size_t count,l
 	while (dev->rp = = dev->wp) { /* nothing to read */
 		up(&dev->sem); /* release the lock */
 		if (filp->f_flags & O_NONBLOCK)
-		return -EAGAIN;
+			return -EAGAIN;
 		PDEBUG("\"%s\" reading: going to sleep\n", current->comm);
 		if (wait_event_interruptible(dev->inq, (dev->rp != dev->wp)))
-		return -ERESTARTSYS; /* signal: tell the fs layer to handle it */
+			return -ERESTARTSYS; /* signal: tell the fs layer to handle it */
 		/* otherwise loop, but first reacquire the lock */
 		if (down_interruptible(&dev->sem))
-		return -ERESTARTSYS;
+			return -ERESTARTSYS;
 	}
 	/* ok, data is there, return something */
 	if (dev->wp > dev->rp)
@@ -175,3 +175,60 @@ static ssize_t scull_p_read (struct file *filp, char __user *buf, size_t count,l
 }
 ```
 When *wait_event_interruptible* is called and the process is waken up, we should start the race for the resource immediately by trying to hold the semaphore using *down_interruptible*.
+
+### Internal Implementation of Sleep
+```
+if (!condition){
+	set_current_state(TASK_INTERRUPTIBLE); //current->state = TASK_INTERRUPTIBLE;
+	if (!condition)
+		schedule(); //Give up the processor and reschedule.
+	set_current_state(TASK_RUNNING); //current->state = TASK_RUNNING
+}
+```
+A more error prone way is by using a higher level functions for sleeping and cleaning up.
+```
+wait_queue_t my_wait;
+init_wait(&my_wait);
+```
+Initiates the sleep operation.
+```
+void prepare_to_wait(wait_queue_head_t *queue, wait_queue_t *wait, int state);
+```
+Change the state of the process, after this you should check you condition then call _schedule()_ .
+```
+void finish_wait(wait_queue_head_t *queue, wait_queue_t *wait);
+```
+Clean up after sleeping.
+
+### Example of write with Low Level Sleep
+The code is mostly like the read but in the sleep part we have :
+```
+static int scull_getwritespace(struct scull_pipe *dev, struct file *filp)
+{
+	while (spacefree(dev) == 0) { /* full */
+		DEFINE_WAIT(wait);
+		up(&dev->sem);
+		if (filp->f_flags & O_NONBLOCK)
+			return -EAGAIN;
+		PDEBUG("\"%s\" writing: going to sleep\n",current->comm);
+		prepare_to_wait(&dev->outq, &wait, TASK_INTERRUPTIBLE);
+		if (spacefree(dev) == 0)
+			schedule( );
+		finish_wait(&dev->outq, &wait);
+		if (signal_pending(current))
+			return -ERESTARTSYS; /* signal: tell the fs layer to handle it */
+		if (down_interruptible(&dev->sem))
+			return -ERESTARTSYS;
+	}
+	return 0;
+}
+```
+The purpose of the second check `if (spacefree(dev) = = 0)` is that the buffer may has been freed between the moment we dropped the semaphore and the that check, if this check is not present of the buffer is freed after it, it is okay, since the process which will wake the writer up will reset the process state to _TASK_RUNNING_ and the _schedule_ will return but it will happen after we voluntarily gave up the processor. So without this check we may volunteer without a reason (actually there is no altruism in processes lol or in anything in that matter)
+
+### Exclusive waking up
+Sometimes we want to wake up one process at a time if a two conditions are met : you expect significant contention for a resource, and waking a single process is sufficient to completely consume the resource. We can do this by using the function:
+```
+void prepare_to_wait_exclusive(wait_queue_head_t *queue, wait_queue_t *wait, int state);
+```
+it sets the process to wait and woken up exclusively. But, all processes who used the normal sleep function  will be woken up all together and only ones who called _prepare_to_wait_exclusive_ will run exclusively.
+We can't use `wait_event` and its variants in this way.
