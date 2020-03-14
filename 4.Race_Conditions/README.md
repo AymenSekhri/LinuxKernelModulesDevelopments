@@ -210,3 +210,23 @@ void write_sequnlock_irqrestore(seqlock_t *lock, unsigned long flags);
 void write_sequnlock_irq(seqlock_t *lock);
 void write_sequnlock_bh(seqlock_t *lock);
 ```
+
+## Summery
+### Semaphore
+* Used in uniprocessor or when the waiting is long.
+* CAN NOT used in interrupt handlers.
+### Spinlocks
+* More efficient in the multiprocessor or when the waiting is short.
+* Can be used in interrupt handlers but only in multiprocessor.
+
+## NOTE
+Consider the code:
+```
+if (down_interruptible(&dev->sem))
+    return -ERESTARTSYS;
+if (dev->rp = = dev->wp) { 
+    /* do something */
+}
+up(&dev->sem); /* release the lock */
+```
+It may seem useless to use semaphore or any lock for a simple check like `dev->rp = = dev->wp` which is may executed atomically, but actually it's not atomic code, that line requires getting data from stuck for the two values then compare them which is at least two instructions and the preemption may happen between them.

@@ -75,8 +75,8 @@ The ability to perform network administration tasks, including those that affect
 network interfaces.
 #### CAP_SYS_MODULE
 The ability to load or remove kernel modules.
-CAP_SYS_RAWIO
-#### The ability to perform “raw” I/O operations. Examples include accessing device
+#### CAP_SYS_RAWIO
+The ability to perform “raw” I/O operations. Examples include accessing device
 ports or communicating directly with USB devices.
 #### CAP_SYS_ADMIN
 A catch-all capability that provides access to many system administration operations.
@@ -86,4 +86,53 @@ The ability to perform tty configuration tasks.
 ## Sending Command Using write Instead of ioctl
 Instead of using ioctl it is possible to use write to interpret the commands for the driver. This method is actually used by the console driver using escape characters to move curser, new line, tab ...
 
+## Non-Blocking I/O
+This is the unusual case and it's rarely used but should be implemented and executed when the flag _**O_NONBLOCK**_ is present in _**filp->f_flags**_. Only _read_,_write_ and _open_ may implement this behavior.
+
 ## Blocking I/O
+If we want some I/O to block when the the requested data is not available we block the process and wake it up when some condition is met.<br> if a process blocks, some interrupt handlers will wake up the process every periodicity and let it check if the condition is met, if it's not, it will go to sleep again.
+There is a structure for the driver that holds the information about the asleep process which is _wait_queue_head_t_
+```
+wait_queue_head_t my_queue;
+init_waitqueue_head(&my_queue);
+```
+To make a process sleep:
+```
+wait_event(queue, condition)
+wait_event_interruptible(queue, condition)
+wait_event_timeout(queue, condition, timeout)
+wait_event_interruptible_timeout(queue, condition, timeout)
+```
+_wait_event_ is wait without an interruption from the user, the other one can be interrupted.
+The last two is the same as the first two but with a timeout, the functions return 0 (success) if the timeout is passed.<br>
+To wake up asleep processes we use:
+```
+void wake_up(wait_queue_head_t *queue);
+void wake_up_interruptible(wait_queue_head_t *queue);
+```
+_wake_up_ is for _wait_event_ and _wake_up_interruptible_ is for _wait_event_interruptible_
+<br>
+Example:
+```
+static DECLARE_WAIT_QUEUE_HEAD(wq);
+static int flag = 0;
+ssize_t sleepy_read (struct file *filp, char __user *buf, size_t count, loff_t *pos)
+{
+	printk(KERN_DEBUG "process %i (%s) going to sleep\n",
+	current->pid, current->comm);
+	wait_event_interruptible(wq, flag != 0);
+	flag = 0;
+	printk(KERN_DEBUG "awoken %i (%s)\n", current->pid, current->comm);
+	return 0; /* EOF */
+}
+ssize_t sleepy_write (struct file *filp, const char __user *buf, size_t count,loff_t *pos)
+{
+	printk(KERN_DEBUG "process %i (%s) awakening the readers...\n",
+	current->pid, current->comm);
+	flag = 1;
+	wake_up_interruptible(&wq);
+	return count; /* succeed, to avoid retrial */
+}
+```
+If a process tries to read when no process wrote before it will block, until another process does write something. There is a race condition in this code which is when a two processes are asleep and another process writes and wakes them both up, both will check the flag and both may pass that condition and executed. in this example it may not be important but in other situations waiting the event and setting the flag should have been an atomic operation (we may use spinlocks instead but we may not use semaphores because Linux might disabled  the interrupts at the condition check)//TODO: check if this is true.<br>
+Note that is a process may want block on write if the buffer is full for example, you have use different wait queue variable. 
