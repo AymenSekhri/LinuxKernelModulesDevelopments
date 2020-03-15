@@ -90,7 +90,7 @@ Instead of using ioctl it is possible to use write to interpret the commands for
 This is the unusual case and it's rarely used but should be implemented and executed when the flag _**O_NONBLOCK**_ is present in _**filp->f_flags**_. Only _read_,_write_ and _open_ may implement this behavior.
 
 ## Blocking I/O
-If we want some I/O to block when the the requested data is not available we block the process and wake it up when some condition is met.<br> if a process blocks, some interrupt handlers will wake up the process every periodicity and let it check if the condition is met, if it's not, it will go to sleep again.
+If we want some I/O to block when the the requested data is not available we block the process and wake it up when some condition is met.<br> if a process blocks, some interrupt handlers will wake up the process every periodicity and let it check if the condition is met, if it's not, it will go to sleep again.<br>
 There is a structure for the driver that holds the information about the asleep process which is _wait_queue_head_t_
 ```
 wait_queue_head_t my_queue;
@@ -230,5 +230,51 @@ Sometimes we want to wake up one process at a time if a two conditions are met :
 ```
 void prepare_to_wait_exclusive(wait_queue_head_t *queue, wait_queue_t *wait, int state);
 ```
-it sets the process to wait and woken up exclusively. But, all processes who used the normal sleep function  will be woken up all together and only ones who called _prepare_to_wait_exclusive_ will run exclusively.
+it sets the process to wait and woken up exclusively. But, all processes who used the normal sleep function  will be woken up all together and only ones who called _prepare_to_wait_exclusive_ will run exclusively.<br>
 We can't use `wait_event` and its variants in this way.
+
+## _poll_ System Call
+```
+int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+```
+_**poll**_ request is used to fetch if some read/write is available for multiple file descriptors which is returned in a bitmask. The driver function of poll is the following:
+```
+unsigned int (*poll) (struct file *filp, poll_table *wait);
+```
+The driver should call _**poll_wait**_ and then sets up the bitmask and return it.
+```
+void poll_wait (struct file *, wait_queue_head_t *, poll_table *);
+```
+Then the kernel will check the returned value, if it is zero, the kernel will sets the process to sleep until someone wakes it up using the wait_queue given, then it will check again and return to user mode if the bitmask is not zero.<br>
+If the driver doesn't call poll_wait the bitmask wont be checked by the kernel and will returned to the user without blocking even if it is zero.<br>
+### bitmask flags
+#### POLLIN
+This bit must be set if the device can be read without blocking.
+#### POLLRDNORM
+This bit must be set if “normal” data is available for reading. A readable device
+returns (POLLIN | POLLRDNORM).
+#### POLLRDBAND
+This bit indicates that out-of-band data is available for reading from the device.
+It is currently used only in one place in the Linux kernel (the DECnet code) and
+is not generally applicable to device drivers.
+#### POLLPRI
+High-priority data (out-of-band) can be read without blocking. This bit causes
+select to report that an exception condition occurred on the file, because select
+reports out-of-band data as an exception condition.
+#### POLLHUP
+When a process reading this device sees end-of-file, the driver must set POLLHUP
+(hang-up). A process calling select is told that the device is readable, as dictated
+by the select functionality.
+#### POLLERR
+An error condition has occurred on the device. When poll is invoked, the device
+is reported as both readable and writable, since both read and write return an
+error code without blocking.
+#### POLLOUT
+This bit is set in the return value if the device can be written to without blocking.
+#### POLLWRNORM
+This bit has the same meaning as POLLOUT, and sometimes it actually is the same
+number. A writable device returns (POLLOUT | POLLWRNORM).
+#### POLLWRBAND
+Like POLLRDBAND, this bit means that data with nonzero priority can be written to
+the device. Only the datagram implementation of poll uses this bit, since a datagram
+can transmit out-of-band data.
