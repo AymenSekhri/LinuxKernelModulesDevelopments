@@ -278,3 +278,26 @@ number. A writable device returns (POLLOUT | POLLWRNORM).
 Like POLLRDBAND, this bit means that data with nonzero priority can be written to
 the device. Only the datagram implementation of poll uses this bit, since a datagram
 can transmit out-of-band data.
+
+### poll Example
+```
+static unsigned int scull_p_poll(struct file *filp, poll_table *wait)
+{
+	struct scull_pipe *dev = filp->private_data;
+	unsigned int mask = 0;
+	/*
+	* The buffer is circular; it is considered full
+	* if "wp" is right behind "rp" and empty if the
+	* two are equal.
+	*/
+	down(&dev->sem);
+	poll_wait(filp, &dev->inq, wait);
+	poll_wait(filp, &dev->outq, wait);
+	if (dev->rp != dev->wp)
+		mask |= POLLIN | POLLRDNORM; /* readable */
+	if (spacefree(dev))
+		mask |= POLLOUT | POLLWRNORM; /* writable */
+	up(&dev->sem);
+	return mask;
+}
+```
