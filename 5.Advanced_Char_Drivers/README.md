@@ -87,7 +87,7 @@ The ability to perform tty configuration tasks.
 Instead of using ioctl it is possible to use write to interpret the commands for the driver. This method is actually used by the console driver using escape characters to move curser, new line, tab ...
 
 ## Non-Blocking I/O
-This is the unusual case and it's rarely used but should be implemented and executed when the flag _**O_NONBLOCK**_ is present in _**filp->f_flags**_. Only _read_,_write_ and _open_ may implement this behavior.
+This is the unusual case and it's rarely used but should be implemented and executed when the flag _**O_NONBLOCK**_ is present in _**filp->f_flags**_. Only _read_,_write_ and _open_ may implement this behavior. If the device is available for read or write the driver should return _**-EAGAIN**_.
 
 ## Blocking I/O
 If we want some I/O to block when the the requested data is not available we block the process and wake it up when some condition is met.<br> if a process blocks, some interrupt handlers will wake up the process every periodicity and let it check if the condition is met, if it's not, it will go to sleep again.<br>
