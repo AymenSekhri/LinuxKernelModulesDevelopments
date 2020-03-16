@@ -302,3 +302,5 @@ static unsigned int scull_p_poll(struct file *filp, poll_table *wait)
 	return mask;
 }
 ```
+## fsync System Call
+_write_ system call should never block, if the device is ready to be written to it applications use poll to check it, if the application wants to insure that the written data was successfully reached the device, it should use _fsync_.
