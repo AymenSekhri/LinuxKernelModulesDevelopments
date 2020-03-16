@@ -115,7 +115,6 @@ static int __init hello_init(void)
 
 		if (setup_cdevice(i))
 		{
-			//TODO: free others too.
 			device_info_cleanup();
 			unregister_chrdev_region(majMin, numOfDevices);
 			goto freeingMem;
