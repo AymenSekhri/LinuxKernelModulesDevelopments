@@ -62,9 +62,10 @@ There predefined capabilities or permission in the kernel for the drivers to res
 ```
 int capable(int capability);
 ```
+It returns _**true**_ when the given permission is set.<br>
 To use it:
 ```
-if (! capable (CAP_SYS_ADMIN))
+if (!capable (CAP_SYS_ADMIN))
 	return -EPERM;
 ```
 And here is some of the permissions defined in *<linux/sched.h>* :
@@ -160,3 +161,84 @@ static unsigned int scull_p_poll(struct file *filp, poll_table *wait)
 _write_ system call should never block, if the device is ready to be written to it applications use poll to check it, if the application wants to insure that the written data was successfully reached the device, it should use _fsync_.
 
 ## Asynchronous Notification
+To setup asynchronous notification we need to set it up in user application and driver.<br><br>
+### User Application:
+* Use _signal_ system call to tell the kernel about our handler's address for _SIGIO_ signals.
+* Send _F_SETOWN_ command using the _fcntl_ to save the process ID in file descriptor in ilp->f_owner.
+* Set _FASYNC_ flag in the device using _fcntl_ with _F_SETFL_ command.
+#### Code
+```
+signal(SIGIO, &input_handler); /* dummy sample; sigaction( ) is better */
+fcntl(STDIN_FILENO, F_SETOWN, getpid( ));
+oflags = fcntl(STDIN_FILENO, F_GETFL);
+fcntl(STDIN_FILENO, F_SETFL, oflags | FASYNC);
+```
+### Driver:
+* When _F_SETFL_ is executed to turn on _FASYNC_, the driver’s _fasync_ method is called, Which is used to setup the asynchronous notification.
+* When Data is received the driver should notify the process using _SIGIO_ signal.
+<br>
+We use the two functions:
+```
+int fasync_helper(int fd, struct file *filp, int mode, struct fasync_struct **fa);
+void kill_fasync(struct fasync_struct **fa, int sig, int band);
+```
+in fasync entry:
+```
+static int scull_p_fasync(int fd, struct file *filp, int mode)
+{
+	struct scull_pipe *dev = filp->private_data;
+	return fasync_helper(fd, filp, mode, &dev->async_queue);
+}
+```
+when the data is available (in write) the drive should call:
+```
+if (dev->async_queue)
+	kill_fasync(&dev->async_queue, SIGIO, POLL_IN);
+```
+
+
+## Control The Device Access to One User
+
+
+### Code in _open_ Entry
+```
+spin_lock(&scull_u_lock);
+if (scull_u_count &&
+	(scull_u_owner != current->uid) && /* allow user */
+	(scull_u_owner != current->euid) && /* allow whoever did su */
+	!capable(CAP_DAC_OVERRIDE)) { /* still allow root */
+		spin_unlock(&scull_u_lock);
+		return -EBUSY; /* -EPERM would confuse the user */
+}
+if (scull_u_count = = 0)
+	scull_u_owner = current->uid; /* grab it */
+scull_u_count++;
+spin_unlock(&scull_u_lock);
+```
+### Code in _release_ Entry
+```
+static int scull_u_release(struct inode *inode, struct file *filp)
+{
+	spin_lock(&scull_u_lock);
+	scull_u_count--; /* nothing else */
+	spin_unlock(&scull_u_lock);
+	return 0;
+}
+```
+
+### Code for Blocking Instead of _EBUSY_
+```
+spin_lock(&scull_w_lock);
+while (! scull_w_available( )) {
+	spin_unlock(&scull_w_lock);
+	if (filp->f_flags & O_NONBLOCK)
+		return -EAGAIN;
+	if (wait_event_interruptible (scull_w_wait, scull_w_available()))
+		return -ERESTARTSYS; /* tell the fs layer to handle it */
+	spin_lock(&scull_w_lock);
+}
+if (scull_w_count = = 0)
+	scull_w_owner = current->uid; /* grab it */
+scull_w_count++;
+spin_unlock(&scull_w_lock);
+```

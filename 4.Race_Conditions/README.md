@@ -220,6 +220,7 @@ void write_sequnlock_bh(seqlock_t *lock);
 * More efficient in the multiprocessor or when the waiting is short.
 * Can be used in interrupt handlers but only in multiprocessor.
 * You should (not necessary) drop the spinlock before going to sleep voluntarily.
+* More efficient when the lock is hold for very short time and doesn't sleep inside (if it sleeps then it will take long time)
 
 ## NOTE
 Consider the code:
