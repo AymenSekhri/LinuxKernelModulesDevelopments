@@ -161,7 +161,7 @@ static unsigned int scull_p_poll(struct file *filp, poll_table *wait)
 _write_ system call should never block, if the device is ready to be written to it applications use poll to check it, if the application wants to insure that the written data was successfully reached the device, it should use _fsync_.
 
 ## Asynchronous Notification
-To setup asynchronous notification we need to set it up in user application and driver.<br><br>
+To setup asynchronous notification we need to set it up in user application and driver.<br>
 ### User Application:
 * Use _signal_ system call to tell the kernel about our handler's address for _SIGIO_ signals.
 * Send _F_SETOWN_ command using the _fcntl_ to save the process ID in file descriptor in ilp->f_owner.
@@ -176,7 +176,6 @@ fcntl(STDIN_FILENO, F_SETFL, oflags | FASYNC);
 ### Driver:
 * When _F_SETFL_ is executed to turn on _FASYNC_, the driver’s _fasync_ method is called, Which is used to setup the asynchronous notification.
 * When Data is received the driver should notify the process using _SIGIO_ signal.
-<br>
 We use the two functions:
 ```
 int fasync_helper(int fd, struct file *filp, int mode, struct fasync_struct **fa);
