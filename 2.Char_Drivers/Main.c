@@ -15,7 +15,7 @@ const int numOfDevices = 4;
 struct device_info
 {
 	char *data;
-	struct cdev *chardev;
+	struct cdev chardev;
 };
 
 struct device_info *charDevices;
@@ -37,6 +37,7 @@ int device_release(struct inode *myinode, struct file *fd)
 }
 ssize_t device_read(struct file *fd, char __user *buf, size_t size, loff_t *offset)
 {
+	
 	printk(KERN_INFO "MyLinuxModule: device is being read from.\n");
 	if (*offset < DEVICE_BLOCK_SIZE)
 	{
@@ -80,13 +81,12 @@ int setup_cdevice(int index)
 {
 	char *device_message = "Hello from the other side\n";
 	//initiate the cdev struct
-	charDevices[index].chardev = kmalloc(sizeof(struct cdev), GFP_KERNEL);
-	cdev_init(charDevices[index].chardev, &myfops);
+	cdev_init(&charDevices[index].chardev, &myfops);
 	//initiate the data
 	charDevices[index].data = kmalloc(DEVICE_BLOCK_SIZE, GFP_KERNEL);
 	memcpy(charDevices[index].data, device_message, strlen(device_message));
 
-	int err = cdev_add(charDevices[index].chardev, MKDEV(MAJOR(majMin), MINOR(majMin) + index), numOfDevices);
+	int err = cdev_add(&charDevices[index].chardev, MKDEV(MAJOR(majMin), MINOR(majMin) + index), numOfDevices);
 	if (err)
 	{
 		printk(KERN_INFO "MyLinuxModule: cdev_add Error : %X\n", err);
@@ -131,11 +131,7 @@ static void device_info_cleanup()
 {
 	for (size_t i = 0; i < numOfDevices; i++)
 	{
-		if (charDevices[i].chardev)
-		{
-			cdev_del(charDevices[i].chardev);
-			kfree(charDevices[i].chardev);
-		}
+		cdev_del(&charDevices[i].chardev);
 		if (charDevices[i].data)
 		{
 			kfree(charDevices[i].data);
