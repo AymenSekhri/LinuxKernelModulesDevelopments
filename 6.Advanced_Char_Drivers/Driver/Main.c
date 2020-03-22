@@ -50,8 +50,8 @@ ssize_t device_read(struct file* fd, char __user* buf, size_t size,
     while (*offset >= mydevice->max_data_avaliable) {
         printk(KERN_INFO "MyLinuxModule: driver is blocking...,      fd=%X.\n", fd);
         mutex_unlock(&mydevice->my_mutex);
-        /*if (fd->f_flags & O_NONBLOCK) // Non Blocking IO
-            return -EAGAIN;*/
+        if (fd->f_flags & O_NONBLOCK) // Non Blocking IO
+            return -EAGAIN;
         if (wait_event_interruptible(mydevice->my_queue,
                 *offset < mydevice->max_data_avaliable))
             return -ERESTARTSYS;
