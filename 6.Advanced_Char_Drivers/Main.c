@@ -17,7 +17,7 @@ const int numOfDevices = 4;
 struct device_info {
     char* data;
     int max_data_avaliable;
-    struct cdev* chardev;
+    struct cdev chardev;
     struct mutex my_mutex;
     struct wait_queue_head my_queue;
 };
@@ -78,8 +78,8 @@ ssize_t device_write(struct file* fd, const char __user* buf, size_t size,
     int true_len = min(size, DEVICE_BLOCK_SIZE - *offset);
     if (mutex_lock_interruptible(&mydevice.my_mutex))
         return -ERESTARTSYS;
-    mydevice.max_data_avaliable += true_len;
     copy_from_user(mydevice.data, buf, true_len);
+    mydevice.max_data_avaliable += true_len;
     mutex_unlock(&mydevice.my_mutex);
 	printk(KERN_INFO "MyLinuxModule: my_queue=%X.\n", &mydevice.my_queue);
 	wake_up_interruptible(&mydevice.my_queue);
@@ -103,7 +103,7 @@ static int __init hello_init(void)
     }
     // register the char device
     int err = alloc_chrdev_region(&majMin, 0, numOfDevices,
-        "char"); // register 4 of them
+        "char");
     if (err == 0) {
         printk(KERN_INFO "MyLinuxModule: Major Number : %d Minor Number %d\n",
             MAJOR(majMin), MINOR(majMin));
@@ -136,16 +136,15 @@ int setup_cdevice(int index)
 {
     char* device_message = "Hello from the other side\n";
     // initiate the cdev struct
-    charDevices[index].chardev = kmalloc(sizeof(struct cdev), GFP_KERNEL);
-    cdev_init(charDevices[index].chardev, &myfops);
+    cdev_init(&charDevices[index].chardev, &myfops);
     // initiate the data
     charDevices[index].data = kmalloc(DEVICE_BLOCK_SIZE, GFP_KERNEL);
     memcpy(charDevices[index].data, device_message, strlen(device_message));
     // initiate the semaphore & queue
     mutex_init(&charDevices[index].my_mutex);
-    init_waitqueue_head(&(charDevices[index].my_queue));
+    init_waitqueue_head(&charDevices[index].my_queue);
     charDevices[index].max_data_avaliable = 0;
-    int err = cdev_add(charDevices[index].chardev,
+    int err = cdev_add(&charDevices[index].chardev,
         MKDEV(MAJOR(majMin), MINOR(majMin) + index), numOfDevices);
     if (err) {
         printk(KERN_INFO "MyLinuxModule: cdev_add Error : %X\n", err);
@@ -156,9 +155,8 @@ int setup_cdevice(int index)
 static void device_info_cleanup()
 {
     for (size_t i = 0; i < numOfDevices; i++) {
-        if (charDevices[i].chardev) {
-            cdev_del(charDevices[i].chardev);
-            kfree(charDevices[i].chardev);
+        if (&charDevices[i].chardev) {
+            cdev_del(&charDevices[i].chardev);
         }
         if (charDevices[i].data) {
             kfree(charDevices[i].data);
