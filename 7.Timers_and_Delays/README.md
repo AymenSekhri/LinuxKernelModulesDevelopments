@@ -28,7 +28,7 @@ unsigned long timeval_to_jiffies(struct timeval *value);
 void jiffies_to_timeval(unsigned long jiffies, struct timeval *value);
 ```
 
-### jiffies vs ## jiffies_64
+### jiffies vs jiffies_64
 _jiffies_64_ and jiffies are both the same in 64bit architectures, but in 32bit architecture _jiffies_64_ is 64bit value but jiffies is the lower half of the 64bit version, and it wraps every ~50 days.<br>
 To get _jiffies_64_ 
 ```
@@ -51,3 +51,78 @@ To access the counter register independent from the architecture we may use:
 cycles_t get_cycles(void);
 ```
 This function returns 0 always if the target architecture doesn't have such registers.
+## Current Date/Time
+It is not recommended to deal with real world time in the kernel, it should be left for the user space. but there are some functions for it anyway.
+```
+#include <linux/time.h>
+unsigned long mktime (unsigned int year, unsigned int mon,
+unsigned int day, unsigned int hour,
+unsigned int min, unsigned int sec);
+```
+This function converts wallclock time into a jiffies value.
+```
+#include <linux/time.h>
+void do_gettimeofday(struct timeval *tv);
+```
+fill timeval structure.
+
+## Delays
+### Busy-Waiting
+Most naive way, just simple loop that checks time.
+```
+while (time_before(jiffies, j1))
+cpu_relax( );
+```
+Cons:
+* it hangs the whole system when the CPU is uniprocessor and not preemptive or interrupts are disabled.
+* When a heavy process is running, gets precise delays for non-preemptive systems but not for preemptive systems.
+
+### Yielding the Processor
+Instead of preserve the CPU doing nothing we tell it to reschedule other process.
+```
+while (time_before(jiffies, j1))
+    schedule( );
+```
+Cons:
+* Not precise delays when the system is busy, since there is no guarantees that the system will schedule our process before the delay expires. 
+* The idle task will never be scheduled since our process will still be in the scheduler queue anyway.
+
+### Events Timouts
+is the best method which uses the normal `wait_event_interruptible_timeout` function.
+```
+#include <linux/wait.h>
+long wait_event_timeout(wait_queue_head_t q, condition, long timeout);
+long wait_event_interruptible_timeout(wait_queue_head_t q, condition, long timeout);
+```
+Example:
+```
+wait_queue_head_t wait;
+init_waitqueue_head (&wait);
+wait_event_interruptible_timeout(wait, 0, delay);
+```
+since the prcoess will be be out of scheduler queue by wait_event_interruptible_timeout function, then the caller process will go to sleep and the scheduler may run idle task if possible. And the same result whether the system is preemptive or not.<br>
+More error-prone way is using `schedule_timeout` since `wait_event_interruptible_timeout` relies on `schedule_timeout`
+internally
+```
+#include <linux/sched.h>
+signed long schedule_timeout(signed long timeout);
+```
+Example:
+```
+set_current_state(TASK_INTERRUPTIBLE);
+schedule_timeout (delay);
+```
+### Short Delays
+These are architecture specific functions and uses busy-waiting.
+```
+#include <linux/delay.h>
+void ndelay(unsigned long nsecs);
+void udelay(unsigned long usecs);
+void mdelay(unsigned long msecs);
+```
+if you want tolerate more delays than expected you can use:
+```
+void msleep(unsigned int millisecs);
+unsigned long msleep_interruptible(unsigned int millisecs);
+void ssleep(unsigned int seconds)
+```
