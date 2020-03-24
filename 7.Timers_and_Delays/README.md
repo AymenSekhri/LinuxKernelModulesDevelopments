@@ -126,3 +126,82 @@ void msleep(unsigned int millisecs);
 unsigned long msleep_interruptible(unsigned int millisecs);
 void ssleep(unsigned int seconds)
 ```
+## Kernel Timers
+Timer are used to execute a function after sometime asynchronously without blocking the current thread, When executed the caller user mode process may not be in memory nor be running at all, so you can't access user memory nor `current` global variable. The timer function is software interrupt handler so it should be atomic and you cant use any function that sleeps nor semaphores...
+To when you are in interrupt handler use `in_interrupt()` which returns nonzero if the processor is currently
+running in interrupt context, either hardware interrupt or software interrupt.<br>
+To know if you can schedule or sleep use `in_atomic()` which similar to `in_interrupt()`, it can be useful to know if you are in interrupt or you are in a code protected using a spinlock.<br>
+It’s also worth knowing that in an SMP system, the timer function is executed by thesame CPU that registered it, to achieve better cache locality whenever possible.Therefore, a timer that reregisters itself always runs on the same CPU.<br>
+
+```
+#include <linux/timer.h>
+struct timer_list {
+    /* ... */
+    unsigned long expires;
+    void (*function)(unsigned long);
+    unsigned long data;
+};
+void init_timer(struct timer_list *timer);
+struct timer_list TIMER_INITIALIZER(_function, _expires, _data);
+void add_timer(struct timer_list * timer);
+int del_timer(struct timer_list * timer);
+```
+some other APIs
+```
+int mod_timer(struct timer_list *timer, unsigned long expires);
+int del_timer_sync(struct timer_list *timer);
+int timer_pending(const struct timer_list * timer);
+```
+## Tasklets
+
+Tasklets are almost same timers, however, you can’t ask to execute the function at a specific time. By scheduling a tasklet, you simply ask for it to be executed a later time chosen by the kernel. This behavior is especially useful with interrupt handlers, where the hardware interrupt must be managed as quickly as possible, but most of the data management can be safely delayed to a later time.
+```
+#include <linux/interrupt.h>
+struct tasklet_struct {
+    /* ... */
+    void (*func)(unsigned long);
+    unsigned long data;
+};
+void tasklet_init(struct tasklet_struct *t,
+void (*func)(unsigned long), unsigned long data);
+DECLARE_TASKLET(name, func, data);
+DECLARE_TASKLET_DISABLED(name, func, data);
+```
+A tasklets can be concurrent with other tasklets but is strictly serialized with respect to itself—the same tasklet never runs simultaneously on more than one processor. Also, as already noted, a tasklet always runs on the same CPU that schedules it.
+som other APIs:
+```
+void tasklet_disable(struct tasklet_struct *t);
+void tasklet_disable_nosync(struct tasklet_struct *t);
+void tasklet_enable(struct tasklet_struct *t);
+void tasklet_schedule(struct tasklet_struct *t);
+void tasklet_hi_schedule(struct tasklet_struct *t);
+void tasklet_kill(struct tasklet_struct *t);
+
+```
+
+## Workqueues
+Workqueues are same as tasklets except they are not atomic so they can sleep because they are executed in a special kernel process, but still it can't access user mode memory.
+APIs to create a work queue
+```
+struct workqueue_struct *create_workqueue(const char *name);
+struct workqueue_struct *create_singlethread_workqueue(const char *name);
+```
+If you use create_workqueue, you get a workqueue that has a dedicated thread for each processor on the system.<br>
+APIs to intilize the work
+```
+DECLARE_WORK(name, void (*function)(void *), void *data); //Static
+INIT_WORK(struct work_struct *work, void (*function)(void *), void *data);
+PREPARE_WORK(struct work_struct *work, void (*function)(void *), void *data);
+```
+There are two functions for submitting work to a workqueue:
+```
+int queue_work(struct workqueue_struct *queue, struct work_struct *work);
+int queue_delayed_work(struct workqueue_struct *queue, struct work_struct *work, unsigned long delay);
+int cancel_delayed_work(struct work_struct *work);
+void flush_workqueue(struct workqueue_struct *queue);
+```
+You can use a shared workqueue provided by the kernel:
+```
+INIT_WORK(&jiq_work, jiq_print_wq, &jiq_data);
+int schedule_work(struct work_struct *work);
+```
