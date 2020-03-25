@@ -52,3 +52,36 @@ void *kmem_cache_alloc(kmem_cache_t *cache, int flags);
 void kmem_cache_free(kmem_cache_t *cache, const void *obj);
 int kmem_cache_destroy(kmem_cache_t *cache);
 ```
+## get_free_page and its friends
+`get_free_page` as opposed to `kmalloc` allocated pages that are physically contagious and aligned, kmalloc may stack multiple small allocations into one page. `kmalloc` uses `get_free_page` for some flags.
+```
+get_zeroed_page(unsigned int flags);
+__get_free_page(unsigned int flags);
+__get_free_pages(unsigned int flags, unsigned int order);
+void free_page(unsigned long addr);
+void free_pages(unsigned long addr, unsigned long order);
+```
+## vmalloc and its friends
+The memory allocated using `vmalloc` is virtually contiguous but not physically contiguous. Addresses allocated by vmalloc can’t be used outside of the microprocessor, because they make sense only on top of the processor’s MMU. When a driver needs a real
+physical address (such as a DMA address, used by peripheral hardware to drive the system’s bus), you can’t easily use vmalloc. The right time to call vmalloc is when you are allocating memory for a large sequential buffer that exists only in software.
+It’s important to note that vmalloc has more overhead than __get_free_pages, because it must both retrieve the memory and build the page tables. Therefore, it doesn’t make sense to call vmalloc to allocate just one page.Both ioremap and vmalloc are page oriented (they work by modifying the page tables); consequently, the relocated or allocated size is rounded up to the nearest page boundary.
+```
+#include <linux/vmalloc.h>
+void *vmalloc(unsigned long size);
+void vfree(void * addr);
+void *ioremap(unsigned long offset, unsigned long size);// get the address and doesn't allocate it.
+void iounmap(void * addr);
+```
+## Per-CPU Variable
+Per-CPU Variable are variables defined for each processor and accessing them doesn't require any locking since they are different copies but they require to the preemption to be disabled which is done internally by the following functions.
+```
+DEFINE_PER_CPU(type, name);
+DEFINE_PER_CPU(int[3], my_percpu_array);
+get_cpu_var(value);
+put_cpu_var(value);
+per_cpu(variable, int cpu_id);// access other copy of Per-CPU variable
+void *alloc_percpu(type);
+void *__alloc_percpu(size_t size, size_t align);
+per_cpu_ptr(void *per_cpu_var, int cpu_id);
+free_percpu(address);
+```
