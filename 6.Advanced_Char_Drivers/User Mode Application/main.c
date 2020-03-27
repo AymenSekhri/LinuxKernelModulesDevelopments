@@ -31,6 +31,10 @@ int main(int argc, char* argv[])
     } else if (decission == 1) {
         //Reading
         fd = open("/dev/char0", O_RDONLY);
+        if (fd == -1) {
+            perror("File cannot be opened");
+            return EXIT_FAILURE;
+        }
         int rd_num = read(fd, buf, 128);
         if (rd_num == 0) {
             printf("Nothing to read.\n");
