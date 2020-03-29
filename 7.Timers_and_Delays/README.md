@@ -178,7 +178,8 @@ void tasklet_hi_schedule(struct tasklet_struct *t);
 void tasklet_kill(struct tasklet_struct *t);
 
 ```
-
+### Note
+Tasklets are atomic which means that you can't sleep there because they don't belong to any process so they can't be rescheduled, though, interrupt are not disabled in the tasklet context.
 ## Workqueues
 Workqueues are same as tasklets except they are not atomic so they can sleep because they are executed in a special kernel process, but still it can't access user mode memory.
 APIs to create a work queue
