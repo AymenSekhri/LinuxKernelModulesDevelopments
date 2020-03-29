@@ -132,3 +132,17 @@ be delivered while the tasklet is running, so locking between the tasklet and th
 Note that tasklets are not cumulative; if you call them two times only one will be executed. Thus, if multiple same interrupts occurred and executed same tasklet, the driver must handle this by a counter to the received events.
 ### Workqueues
 Like before you can sleep but you cant copy to user space memory.
+
+## Shared Interrupt Lines
+You can use shared interrupt lines by `SA_SHIRQ` flag in `request_irq` and passing a unique name to it. And in the ISR you should return IRQ_NONE. You shouldn't disable interrupt line too, because it is shared and not only you who would use it. When an interrupt occurs, all the ISRs will be called. `/proc/interrupts` shows shared interrupts in the same line.
+
+## Interrupt Based I/O
+
+### Write
+1. See if there is available space in the buffer, if not sleep until there is.
+2. Schedule a timer for timeout.
+3. Schedule a write queue.
+4. The scheduled write queue will check if all there data in the buffer to be written to the device, if there is write it.
+5. The scheduled write queue will check if there is a space in the buffer, if there is wake up the sleeping processes (which they slept in step 1) and delete the timer.
+6. When an interrupt occurs indicating that the write operation has been completed, schedule write queue again and go to step 3.
+7. When the timer timeout is called it should check if the device is busy (using input ports) if it's then schedule another timer, if not then we have missed an interrupt and we should call the interrupt handler manually.
