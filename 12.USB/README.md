@@ -8,7 +8,7 @@ http://www.usbmadesimple.co.uk/ums_7.htm
 **Bulk Data Transfers** provide lossless, sequential transmissions and are typically used to transfer large amounts of data.
 **Interrupt Data Transfers** provide reliable, limited-latency transmissions typically needed by human input devices such as a mouse or a joystick.
 **Isochronous Data Transfers**, also called Streaming Real-time Transfers, negotiate a required bandwidth and latency when initializing the transfer. This transfer type is predominantly used for such applications as streaming audio. Since data-delivery rate is considered more important than data integrity for this type of transfer, it does not provide any type of error checking or correction mechanism.
-### Transaction
+### Transactions
 Each Transfer has one or more transactions.
 #### Control Transfer's Transactions
   * **SETUP:** initializes both the function's and the host's data toggle bits to 0.
@@ -24,10 +24,10 @@ Consists of only one transaction either IN our OUT. but the transaction doesn't 
 FIXME: PING is separate transaction or packet in bulk ?
 **PING** transaction is Control Transfer, When **PING** transaction is sent to the function each time want to write/read data. the function may responds with **NAK** packet (in PING transaction) which means that the function is not ready yet, or by **ACK** which means that you can read/write data.<br>
 During bulk transactions, when **NYET** packet is received (inside the bulk transaction) instead of **ACK**, that means that the data is received the function, can't handle more data and you should send PING transaction to poll the state in the future.
-### Packet
+### Packets
 Each transaction consists of some packets which are atomic
 * **Token Packet:** Used in all transactions.
-* **Data Packet:**: Used only of transactions that needs data.
+* **Data Packet:** Used only of transactions that needs data.
 **DATA0** and **DATA1** PIDs are used in Low and Full speed links as part of an error-checking system. When used, all data packets on a particular endpoint use an alternating DATA0 / DATA1 so that the endpoint knows if a received packet is the one it is expecting. If it is not it will still acknowledge (ACK) the packet as it is correctly received, but will then discard the data, assuming that it has been re-sent because the host missed seeing the ACK the first time it sent the data packet.
 * **Handshake Packet:** Used for all transactions except Isochronous.
 * **SOF Packet:** Not used any transaction except SOF which is in the start of each (micro)frame (more about (micro)frame in the next section).<br>
