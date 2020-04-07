@@ -19,8 +19,7 @@ Functions that register or unregister a PCI driver from the kernel.
 #### unsigned int ss_vendor, unsigned int ss_device, const struct pci_dev *from);
 #### struct pci_dev *pci_find_class(unsigned int class, struct pci_dev *from);
 Functions that search the device list for devices with a specific signature or those belonging to a specific class. The return value is NULL if none is found. from is used to continue a search; it must be NULL the first time you call either function, and it must point to the device just found if you are searching for more devices. These functions are not recommended to be used, use the pci_get_ variants instead.
-#### struct pci_dev *pci_get_device(unsigned int vendor, unsigned int device,
-#### struct pci_dev *from);
+#### struct pci_dev *pci_get_device(unsigned int vendor, unsigned int device, struct pci_dev *from);
 #### struct pci_dev *pci_get_subsys(unsigned int vendor, unsigned int device,unsigned int ss_vendor, unsigned int ss_device, struct pci_dev *from);
 #### struct pci_dev *pci_get_slot(struct pci_bus *bus, unsigned int devfn);
 Functions that search the device list for devices with a specific signature or belonging to a specific class. The return value is NULL if none is found. from is used to continue a search; it must be NULL the first time you call either function, and it must point to the device just found if you are searching for more devices. The structure returned has its reference count incremented, and after the caller is finished with it, the function pci_dev_put must be called.

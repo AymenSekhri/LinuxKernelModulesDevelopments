@@ -35,3 +35,12 @@ The Start of Frame packet is sent every 1 ms on full speed links. The frame is u
 * **Split Packet:** The SPLIT packet is the first packet in either a Start Split transaction or a Complete Split transaction, sent to a high speed hub when it is handling a low or full speed device.
 ### (Micro)Frames
 USB timing consists of periodic parts of 1ms(microframes for low speed) and 125us(frames for high speed), each (micro)frame starts with SOF Transaction witch is one packet, then transactions different control transaction may be reordered (transactions of different transfers are reordered but they still maintain the order of the transactions of the same transfer).
+
+## USB In Linux
+### USB Devices in sysfs Tree
+`sysfs` file system is used to view the devices tree, for example a USB mouse interface has the following path.<br>
+`/sys/devices/pci0000:00/0000:00:09.0/usb2/2-1/2-1:1.0`
+`/sys/devices             /pci0000:00       /0000:00:09.0     /usb2           /2-1                /2-1:1.0`
+  ↑-> the file system        ↑-> PCI bus      ↑-> PCI slot      ↑-> USB hub     ↑-> USB Device      ↑-> Configuration . Interface
+  <br>
+USB sysfs device naming scheme is: `root_hub-hub_port:config.interface`
