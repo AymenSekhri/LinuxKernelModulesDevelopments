@@ -12,7 +12,8 @@ Replacing "MyLinuxModule" with a string you should attach to the printk at the b
 
 ### Special Macros to Used
 Use the macro *_ _FILE_ _* to get string of the current file.</br>
-Use the macro *_ _LINE_ _* to get string of the current line of code.
+Use the macro *_ _LINE_ _* to get string of the current line of code.</br>
+Use the macro *_ FUNCTION _* to get string of the current function name.</br>
 
 ### Notes
 * You should not abuse debugging messages, because it may slow down the system because of disk operations of it.
