@@ -107,12 +107,12 @@ void write_unlock_bh(rwlock_t *lock);
 ```
 
 ### Spinlock Rules
-* When a spinlock is hold, the kernel disable preemption (thread will be rescheduled).
-* In code that holds the spinlock, no function that may cause sleep should be present (Atomic code), because if it is, then thread will be rescheduled.
+* When a spinlock is held, the kernel disables preemption (thread will not be rescheduled).
+* In code that holds the spinlock, no function that may cause sleep should be present (Atomic code), because if it is, then thread will not be rescheduled.
 * If there is a code that has a spinlock and there is an interrupt handler that needs to hold a spinlock, you must use spinlock functions that disables the interrupts.
 
 ## Semaphore/Mutex/Spinlock Rules
-* If a function that requires a lock calls a function requires a lock, the thread will keep spinning forever, You should never do this.
+* If a function that requires a lock calls another function that requires the same lock, the thread will keep spinning forever, You should never do this.
 * If a code needs to hold two locks then all codes must acquire the locks in the same order, otherwise one thread may hold lock1 and seeks for lock2, while another thread holds a lock2 and seeks for lock1 and they both be hanging for ever.
 * In device drivers you should use lock for the whole driver and optimize to smaller chunks of code only if you have reason to, use the tool *lock-meter* to measure the time spent on each lock.
 
@@ -232,4 +232,4 @@ if (dev->rp = = dev->wp) {
 }
 up(&dev->sem); /* release the lock */
 ```
-It may seem useless to use semaphore or any lock for a simple check like `dev->rp = = dev->wp` which is may executed atomically, but actually it's not atomic code, that line requires getting data from stuck for the two values then compare them which is at least two instructions and the preemption may happen between them.
+It may seem useless to use semaphore or any lock for a simple check like `dev->rp = = dev->wp` which is may executed atomically, but actually it's not atomic code, that line requires getting data from stack for the two values then compare them which is at least two instructions and the preemption may happen between them.
